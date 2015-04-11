@@ -1,31 +1,85 @@
+#!/usr/bin/env python
+
+import creds
 import json
 import requests
 from datetime import date, datetime
 
-data_path = "../data/stalled-construction-sites-pristine.json"
 save_path = "../data/%s"
+pristine_data_path = save_path % "stalled-construction-sites-pristine.json"
+trimmed_data_path = save_path % "stalled-construction-after-2013.json"
+
+GOOGLE_API_KEY = creds.GOOGLE_API_KEY
 
 
 def main():
     # retrieve all entries from pristine data where
     # complaint date falls after Jan 1st 2013
-    filter_date = date(2013, 1, 1)
-    new_data_path = save_path % 'stalled-construction-after-2013.json'
-    filter_by_date(filter_date, new_data_path)
+    # filter_date = date(2013, 1, 1)
+    # new_data_path = trimmed_data_path
+    # filter_by_date(filter_date, new_data_path)
+    output = {}
+    output['objects'] = []
+    output_json = output['objects']
+    
+    existing_addresses = {}
+    
+    input_json = read_json(trimmed_data_path)
+    input_objects = input_json['objects']
+    for complaint_entry in input_objects[:5]:
+        address = get_address_from_entry(complaint_entry)
+        complaint = get_complaint_dict(complaint_entry)
+        if address in existing_addresses:
+             existing_address = existing_addresses[address]
+             existing_address['complaints'].append(complaint)
+        else:
+            new_address = get_google_maps_dict_from_entry(complaint_entry)
+            if new_address is None:
+                print "failed to get google maps data for %s" % address
+                continue
+            new_address['complaints'] = [complaint]
+            existing_addresses[address] = new_address
+    print json.dumps(existing_addresses,
+            indent=4, separators=(',', ':'))
 
 
-def get_coordinates(location_string):
+
+def get_complaint_dict(complaint_entry):
+    complaint = {}
+    complaint['complaint_number'] = complaint_entry[13]
+    complaint['date_received'] = complaint_entry[14]
+    return complaint
+
+
+def get_google_maps_dict_from_entry(entry):
+    address = get_address_from_entry(entry)
+    return get_google_maps_result(address)
+
+
+def get_address_from_entry(entry):
     '''
-    Return a (longitude, latitude) tuple given a location string
-
-    A location string can be any location that can be reverse-geoencoded.
-    E.g. 123 Fake Street, NYC
+    Return a (latitude, longitude) tuple given a single json entry
     '''
-    response = requests.get(
-        'http://maps.google.com/maps/api/geocode/json?address=%s' %
-        location_string)
-    location = response.json()['results'][0]['geometry']['location']
-    return (location['lat'], location['lng'])
+    house_no = entry[11].strip()
+    street = entry[12].strip()
+    borough = entry[8].strip()
+    address = '%s %s, %s, New York' % (house_no, street, borough)
+    return address.replace(' ', '+')
+
+
+def get_google_maps_result(location_string):
+    print "getting google maps result for location string '%s'" % location_string
+
+    resp = requests.get(
+        'https://maps.googleapis.com/maps/api/geocode/json?address=%s&key=%s' %
+        (location_string, GOOGLE_API_KEY)).json()['results']
+    if len(resp) == 0:
+        return None
+    resp = resp[0]
+    returning = {}
+    returning['formatted_address'] = resp['formatted_address']
+    returning['location'] = resp['geometry']['location']
+    return returning
 
 
 def filter_by_date(date_in, save_path):
