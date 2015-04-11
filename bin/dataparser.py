@@ -65,7 +65,7 @@ def get_address_from_entry(entry):
     street = entry[12].strip()
     borough = entry[8].strip()
     address = '%s %s, %s, New York' % (house_no, street, borough)
-    return address.replace(' ', '+')
+    return address
 
 
 def get_google_maps_result(location_string):
