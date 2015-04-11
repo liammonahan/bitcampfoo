@@ -3,6 +3,7 @@
 import creds
 import json
 import requests
+import sys
 from datetime import date, datetime
 
 save_path = "../data/%s"
@@ -17,7 +18,7 @@ def main():
     # complaint date falls after Jan 1st 2013
     # filter_date = date(2013, 1, 1)
     # new_data_path = trimmed_data_path
-    # filter_by_date(filter_date, new_data_path)
+    # trim_data(new_data_path)
     output = {}
     output['objects'] = []
     output_json = output['objects']
@@ -82,16 +83,17 @@ def get_google_maps_result(location_string):
     return returning
 
 
-def filter_by_date(date_in, save_path):
+def trim_data(save_path):
     """Using the given json data, filter out the stalled construction
     entries that fall before or after a certain date and return the
     data as a json file. """
-
+    
+    complaint_numbers = {}
     output_json = {}
     output_json['objects'] = []
     objects = output_json['objects']
     # the original unmodified json data provided by NYC open data
-    with open(data_path) as data_file:
+    with open(pristine_data_path) as data_file:
         pristine_data = json.load(data_file)
         data_entries = pristine_data['data']
         complaint_date_idx = 14
@@ -99,8 +101,11 @@ def filter_by_date(date_in, save_path):
         for entry in data_entries:
             raw_date = entry[complaint_date_idx]
             datetime_obj = datetime.strptime(raw_date, json_date_format)
-            if datetime_obj.date() > date_in:
-                objects.append(entry)
+            complaint_number = entry[13]
+            if complaint_number in complaint_numbers:
+                continue
+            objects.append(entry)
+            complaint_numbers[complaint_number] = True
 
     with open(save_path, 'w+') as outfile:
         json.dump(output_json, outfile)
