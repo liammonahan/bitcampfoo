@@ -7,7 +7,7 @@ import sys
 
 save_path = "../data/%s"
 pristine_data_path = save_path % "stalled-construction-sites-pristine.json"
-trimmed_data_path = save_path % "stalled-construction-after-2013.json"
+trimmed_data_path = save_path % "stalled-construction-unique-complaints.json"
 addresses_data_path = save_path % "addresses.json"
 
 GOOGLE_API_KEY = creds.GOOGLE_API_KEY
@@ -17,7 +17,10 @@ ADDRESSES = {}
 
 def load_addresses():
     global ADDRESSES
-    ADDRESSES = read_json(addresses_data_path)['addresses']
+    try:
+        ADDRESSES = read_json(addresses_data_path)['addresses']
+    except IOError:
+        pass
 
 
 def save_addresses():
@@ -28,7 +31,7 @@ def main():
     new_data_path = trimmed_data_path
     trim_data(new_data_path)
 
-    load_addresses('../data/addresses.json')
+    load_addresses()
 
     output = {}
     output['objects'] = []
@@ -38,23 +41,24 @@ def main():
 
     input_json = read_json(trimmed_data_path)
     input_objects = input_json['objects']
-    for complaint_entry in input_objects[:50]:
-        address = get_address_from_entry(complaint_entry)
+    for complaint_entry in input_objects:
+        address_string = get_address_string_from_entry(complaint_entry)
         complaint = get_complaint_dict(complaint_entry)
-        if address in existing_addresses:
-            existing_address = existing_addresses[address]
+        if address_string in existing_addresses:
+            existing_address = existing_addresses[address_string]
             existing_address['complaints'].append(complaint)
         else:
-            new_address = get_google_maps_dict_from_entry(complaint_entry)
+           # new_address = get_google_maps_dict_from_entry(complaint_entry)
+            new_address = get_address(address_string)
             if new_address is None:
-                print "failed to get google maps data for %s" % address
+                print "failed to get google maps data for %s" % address_string
                 continue
             new_address['complaints'] = [complaint]
-            existing_addresses[address] = new_address
-    print json.dumps(existing_addresses,
-                     indent=4, separators=(',', ':'))
+            existing_addresses[address_string] = new_address
+    #print json.dumps(existing_addresses,
+    #                 indent=4, separators=(',', ':'))
 
-    save_addresses('../data/addresses.json')
+    save_addresses()
 
 
 def get_complaint_dict(complaint_entry):
@@ -65,11 +69,11 @@ def get_complaint_dict(complaint_entry):
 
 
 def get_google_maps_dict_from_entry(entry):
-    address = get_address_from_entry(entry)
+    address = get_address_string_from_entry(entry)
     return get_google_maps_result(address)
 
 
-def get_address_from_entry(entry):
+def get_address_string_from_entry(entry):
     '''
     Return a (latitude, longitude) tuple given a single json entry
     '''
@@ -80,13 +84,20 @@ def get_address_from_entry(entry):
     return address
 
 
-def persist_address(address_string, coordinates):
+def persist_address(location_string, location_metadata):
     '''
     Write the coordnates hash to a json file if not already cached
     '''
-    if address_string not in ADDRESSES:
-        ADDRESSES[address_string] = coordinates
+    if location_string not in ADDRESSES:
+        ADDRESSES[location_string] = location_metadata 
 
+def get_address(location_string):
+    addr = ADDRESSES.get(location_string, None)
+    if addr:
+        return addr
+    location_metadata = get_google_maps_result(location_string)
+    persist_address(location_string, location_metadata)
+    return location_metadata
 
 def get_google_maps_result(location_string):
     print "getting google maps result for '%s'" % location_string
@@ -97,10 +108,9 @@ def get_google_maps_result(location_string):
     if len(resp) == 0:
         return None
     resp = resp[0]
-    returning = {}
-    returning['formatted_address'] = resp['formatted_address']
-    returning['location'] = resp['geometry']['location']
-    return returning
+    location_metadata = {'coordinates': resp['geometry']['location'],
+                         'formatted_address': resp['formatted_address']}
+    return location_metadata
 
 
 def trim_data(save_path):
