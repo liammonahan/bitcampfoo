@@ -1,8 +1,10 @@
 import json
+import requests
 from datetime import date,datetime
 
 data_path="../data/stalled-construction-sites-pristine.json"
 save_path="../data/%s"
+
 
 def main():
 	#retrieve all entries from pristine data where 
@@ -10,6 +12,20 @@ def main():
 	filter_date = date(2013,1,1) 	
 	new_data_path = save_path % 'stalled-construction-after-2013.json'
 	filter_by_date(filter_date, new_data_path) 		
+
+
+def get_coordinates(location_string):
+    '''
+    Return a (longitude, latitude) tuple given a location string
+
+    A location string can be any location that can be reverse-geoencoded.
+    E.g. 123 Fake Street, NYC
+    '''
+    response = requests.get(
+        'http://maps.google.com/maps/api/geocode/json?address=%s' %
+        location_string) 
+    location = response.json()['results'][0]['geometry']['location'] 
+    return (location['lat'], location['lng'])
 
 
 def filter_by_date(date_in, save_path):
