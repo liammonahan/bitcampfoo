@@ -63,6 +63,7 @@ body { margin:0; padding: 0; }
 </style>
 
 <body>
+    
     <div id="slider"></div>
     <div id="addresses"></div>
 </body>
@@ -94,7 +95,7 @@ function HideTooltip()
 <script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
 
 <script>
-var width = window.innerWidth -10,
+var width = window.innerWidth *0.6,
 height = window.innerHeight-10 ,
 scale = 60000;
 
@@ -112,10 +113,7 @@ tip = d3.tip().attr('class', 'd3-tip').html(function(d) {
 });
 
 function drawMap(error,json) {
-    var color = d3.scale.linear()
-        .domain([0, 20])
-        .range(["white", "red"])
-        .interpolate(d3.interpolateLab);
+   
 
     var hexbin = d3.hexbin()
         .size([width, height])
@@ -153,6 +151,9 @@ function drawMap(error,json) {
             .attr("d", path);
     });
 
+
+    
+
     var points = [];
     
     d3.json("data/d3-addresses.json", function(error, data) {
@@ -162,6 +163,17 @@ function drawMap(error,json) {
                 points.push(d);
             }
         });
+
+        var max_len=0;
+        hexbin(points).forEach(function(d){
+            if(d.length>max_len)
+                max_len=d.length;
+        });
+
+        var color = d3.scale.linear()
+            .domain([0, max_len])
+            .range(["white", "red"])
+            .interpolate(d3.interpolateLab);
 
         svg.append("g")
             .selectAll(".hexagon")
@@ -177,6 +189,9 @@ function drawMap(error,json) {
         ;
 
     });
+
+
+
     
     svg.append("text")
         .attr("class", "tooltip")
