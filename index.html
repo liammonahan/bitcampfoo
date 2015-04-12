@@ -2,6 +2,13 @@
 <meta charset="utf-8">
 <style>
 
+#addresses {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 200px;
+}
+
 #boundary {
   stroke: lightblue;
   stroke-width: 1px;
@@ -23,12 +30,20 @@
   fill: none;
   stroke: #000;
   stroke-width: .5px;
+  z-index: -1000;
 }
 
 .hexagon:hover {
   stroke-width: 1px;
 }
 
+.d3-tip {
+  z-index: 1000;
+  padding: 4px;
+  background: white;
+  border: 1px solid #CCC;
+  border-radius:4px;
+}
 
 body { margin:0; padding: 0; }
 
@@ -36,6 +51,7 @@ body { margin:0; padding: 0; }
 
 <body>
     <div id="slider"></div>
+    <div id="addresses"></div>
 </body>
 
 
@@ -62,7 +78,7 @@ function HideTooltip()
 <script src="https://raw.githubusercontent.com/turban/d3.slider/master/d3.slider.js"></script>
 <script src="http://d3js.org/topojson.v1.min.js"></script>
 <script src="http://d3js.org/d3.hexbin.v0.min.js"></script>
-<script src="http://d3js.org/queue.v1.min.js"></script>
+<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
 
 <script>
 var width = window.innerWidth -10,
@@ -72,6 +88,16 @@ scale = 60000;
 var center_x = -73.99,
 center_y= 40.71;
 
+tip = d3.tip().attr('class', 'd3-tip').html(function(d) { 
+  var newHTML = "<ul>";
+  for (i = 0; i < d.length; i++) {
+    newHTML += "<li>" + d[i].formatted_address + "</li>";
+  }
+  newHTML += "</ul>";
+  document.getElementById("addresses").innerHTML = newHTML;
+  return d.length + "addresses with stalled construction projects"; 
+});
+
 function drawMap(error,json) {
     var color = d3.scale.linear()
         .domain([0, 20])
@@ -80,12 +106,16 @@ function drawMap(error,json) {
 
     var hexbin = d3.hexbin()
         .size([width, height])
-        .radius(scale/10000);
+        .radius(scale/10000)
+        .x(function(d) {return d.point[0]})
+        .y(function(d) {return d.point[1]});
 
     var svg= d3.select("div").append("svg")
         .attr("width",width)
         .attr("height",height)
         .attr("id","myMap");
+        
+    svg.call(tip)
 
     var projection = d3.geo.mercator()
         .center([center_x, center_y])
@@ -110,13 +140,13 @@ function drawMap(error,json) {
             .attr("d", path);
     });
 
-    var points=[];
-
+    var points = [];
+    
     d3.json("data/d3-addresses.json", function(error, data) {
         data.addresses.forEach(function(d){
-            if(d!= null){
-                var p = projection([d.coordinates.lng, d.coordinates.lat]);
-                points.push(p);
+            if (d != null) {
+                d.point = projection([d.coordinates.lng, d.coordinates.lat]);
+                points.push(d);
             }
         });
 
@@ -129,13 +159,12 @@ function drawMap(error,json) {
             .attr("transform", function(d) { 
                 return "translate(" + d.x + "," + d.y + ")"; })
             .style("fill", function(d) { return color(d.length)})
-            .attr("onmousemove", "ShowTooltip(evt)")
-            .attr("onmouseout", "HideTooltip()")
+            .on('mouseover', tip.show)
+            .on('mouseout', tip.hide)
         ;
 
     });
     
-
     svg.append("text")
         .attr("class", "tooltip")
         .attr("id", "tooltip")
@@ -162,7 +191,6 @@ function drawMap(error,json) {
         .text(function(){
             return "sliderValue";
         });
-    
 }
 
 function showSlider() {   
@@ -180,8 +208,6 @@ function showSlider() {
 
         });
     d3.select('#slider').call(slider);
-
-   
 }
 
 drawMap();
