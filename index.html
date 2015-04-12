@@ -164,11 +164,11 @@ function drawMap(error,json) {
             }
         });
 
-        var max_len=0;
-        hexbin(points).forEach(function(d){
-            if(d.length>max_len)
-                max_len=d.length;
+        var max_len = d3.max(hexbin(points), function(d) {
+          return d.length;
         });
+
+        console.log(max_len);
 
         var color = d3.scale.linear()
             .domain([0, max_len])
