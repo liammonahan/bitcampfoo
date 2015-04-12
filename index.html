@@ -1,12 +1,186 @@
 <!DOCTYPE html>
-<head>
-    <meta charset="utf-8">
-    <title>Bitcamp Foo</title>
-</head>
-<body>
-    <script src="http://d3js.org/d3.v3.min.js"></script>
-    <script>
+<meta charset="utf-8">
+<style>
 
-    </script>
+#boundary {
+  stroke: lightblue;
+  stroke-width: 1px;
+  fill: yellow;
+  fill-opacity:0.1;
+}
+.axis text {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.hexagon {
+  fill: none;
+  stroke: #000;
+  stroke-width: .5px;
+}
+
+
+body { margin:0; padding: 0; }
+
+</style>
+
+<body>
+    <div id="slider"></div>
 </body>
 
+
+<script type="text/ecmascript" id="script">
+
+function ShowTooltip(evt)
+{
+  tooltip.setAttributeNS(null,"x",evt.clientX-8);
+  tooltip.setAttributeNS(null,"y",evt.clientY-5);
+  tooltip.setAttributeNS(null,"visibility","visible");
+  tooltip.text(evt.clientX-8+","+evt.clientY-5);
+}
+
+function HideTooltip()
+{
+  tooltip.setAttributeNS(null,"visibility","hidden");
+}
+
+</script>
+
+<link rel="stylesheet" type="text/css" href="css/d3.slider.css" media="screen" />
+
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="https://raw.githubusercontent.com/turban/d3.slider/master/d3.slider.js"></script>
+<script src="http://d3js.org/topojson.v1.min.js"></script>
+<script src="http://d3js.org/d3.hexbin.v0.min.js"></script>
+<script src="http://d3js.org/queue.v1.min.js"></script>
+
+<script>
+var width = window.innerWidth -10,
+height = window.innerHeight-10 ,
+scale = 60000;
+
+var center_x = -73.99,
+center_y= 40.71;
+
+function drawMap(error,json) {
+    var color = d3.scale.linear()
+        .domain([0, 20])
+        .range(["white", "red"])
+        .interpolate(d3.interpolateLab);
+
+    var hexbin = d3.hexbin()
+        .size([width, height])
+        .radius(scale/10000);
+
+    var svg= d3.select("div").append("svg")
+        .attr("width",width)
+        .attr("height",height)
+        .attr("id","myMap");
+
+    var projection = d3.geo.mercator()
+        .center([center_x, center_y])
+        .scale(scale)
+        .translate([(width)/2, (height)/2]);
+
+    d3.json("data/nyc.json", function(error, nyb) {
+        console.log(error);
+
+        var path = d3.geo.path()
+            .projection(projection);
+
+        var g = svg.append("g");
+
+        g.append("g")
+            .attr("id", "boundary")
+            .selectAll(".state")
+            .data(nyb.features)
+            .enter().append("path")
+            .attr("class", function(d){ 
+                return d.properties.name; })
+            .attr("d", path);
+    });
+
+    var points=[];
+
+    d3.json("data/d3-addresses.json", function(error, data) {
+        data.addresses.forEach(function(d){
+            if(d!= null){
+                var p = projection([d.coordinates.lng, d.coordinates.lat]);
+                points.push(p);
+            }
+        });
+
+        svg.append("g")
+            .selectAll(".hexagon")
+            .data(hexbin(points))
+            .enter().append("path")
+            .attr("class", "hexagon")
+            .attr("d", hexbin.hexagon())
+            .attr("transform", function(d) { 
+                return "translate(" + d.x + "," + d.y + ")"; })
+            .style("fill", function(d) { return color(d.length)})
+            .attr("onmousemove", "ShowTooltip(evt)")
+            .attr("onmouseout", "HideTooltip()")
+        ;
+
+    });
+    
+
+    svg.append("text")
+        .attr("class", "tooltip")
+        .attr("id", "tooltip")
+        .attr("x", 100)
+        .attr("y", 100)
+        .text(function() {
+            return "tips";
+        });
+
+    svg.append("text")
+        .attr("class", "tooltip")
+        .attr("id", "mapscale")
+        .attr("x", 100)
+        .attr("y", 200)
+        .text(function(){
+            return "mapScale";
+        });
+
+    svg.append("text")
+        .attr("class", "tooltip")
+        .attr("id", "sliderValue")
+        .attr("x", 100)
+        .attr("y", 300)
+        .text(function(){
+            return "sliderValue";
+        });
+    
+}
+
+function showSlider() {   
+    var slider = d3.slider()
+        .min(scale * 0.1)
+        .max(scale * 2)
+        .value(scale)
+        .orientation("vertical")
+        .on("slide", function(evt, value) {
+            d3.select('#tooltip').text(Math.floor(value));
+            d3.select('#mapscale').text(scale);
+            scale = value;
+            d3.select('#myMap').remove();
+            drawMap();
+
+        });
+    d3.select('#slider').call(slider);
+
+   ]
+}
+
+drawMap();
+showSlider();
+
+</script>
