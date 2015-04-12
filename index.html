@@ -1,12 +1,25 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+<link rel="stylesheet"
+      href="https://intranet.umiacs.umd.edu/common/bootstrap/3.2.0/css/bootstrap.min.css">
+    <link rel="stylesheet"
+      href="https://intranet.umiacs.umd.edu/common/bootstrap/3.2.0/css/bootstrap-theme.min.css">
 <style>
 
 #addresses {
   position: absolute;
   top: 0;
   right: 0;
-  width: 200px;
+  width: 300px;
+  padding: 10px;
+}
+
+#addresses ul {
+  list-style-type: none;
+}
+
+#addresses ul li {
+  border-bottom: 1px solid #CCC;
 }
 
 #boundary {
@@ -95,7 +108,7 @@ tip = d3.tip().attr('class', 'd3-tip').html(function(d) {
   }
   newHTML += "</ul>";
   document.getElementById("addresses").innerHTML = newHTML;
-  return d.length + "addresses with stalled construction projects"; 
+  return d.length + " addresses with stalled construction projects"; 
 });
 
 function drawMap(error,json) {
