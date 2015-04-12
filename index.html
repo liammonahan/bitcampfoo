@@ -1,9 +1,15 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+<title>Stalled Construction Projects in the Big Apple</title>
 <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
 <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css" rel="stylesheet">
 
 <style>
+
+#title {
+  position: absolute;
+  padding-left: 50px;
+}
 
 #addresses {
   position: absolute;
@@ -28,16 +34,6 @@
   fill: yellow;
   fill-opacity:0.1;
 }
-.axis text {
-  font: 10px sans-serif;
-}
-
-.axis path,
-.axis line {
-  fill: none;
-  stroke: #000;
-  shape-rendering: crispEdges;
-}
 
 .hexagon {
   fill: none;
@@ -58,12 +54,13 @@
   border-radius:4px;
 }
 
-body { margin:0; padding: 0; }
+html { margin: 0; padding: 0; }
+body { margin: 0; padding: 0; }
 
 </style>
 
 <body>
-    
+    <h4 id="title">Stalled Construction Projects in the Big Apple</h4>   
     <div id="slider"></div>
     <div id="addresses"></div>
 </body>
@@ -87,7 +84,6 @@ function HideTooltip()
 </script>
 
 <link rel="stylesheet" type="text/css" href="css/d3.slider.css" media="screen" />
-
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script src="https://raw.githubusercontent.com/turban/d3.slider/master/d3.slider.js"></script>
 <script src="http://d3js.org/topojson.v1.min.js"></script>
@@ -96,7 +92,7 @@ function HideTooltip()
 
 <script>
 var width = window.innerWidth - 300,
-height = window.innerHeight - 10 ,
+height = window.innerHeight,
 scale = 70000;
 scale_lower = scale * 0.9;
 scale_upper = scale * 3;
